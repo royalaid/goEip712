@@ -46,7 +46,8 @@ func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
 	if err != nil {
 		return nil, err
 	}
-	deadline := time.Now().Unix()
+	//Add 1hr to deadline
+	deadline := time.Now().Unix() + 60*60
 
 	var eipBody = &eip712.TypedData{
 		Domain: eip712.TypedDataDomain{
