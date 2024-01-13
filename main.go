@@ -3,9 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/joho/godotenv"
-	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"goEip712/eip712"
 	"goEip712/warpcast"
 	"log"
@@ -14,6 +11,11 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/joho/godotenv"
+	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 )
 
 func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
@@ -28,8 +30,7 @@ func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
 	if err != nil {
 		return nil, err
 	}
-	path := hdwallet.MustParseDerivationPath("m/44'/60'/0'/0/0")
-	account, err := wallet.Derive(path, false)
+	account, err := wallet.Derive(accounts.DefaultBaseDerivationPath, true)
 	if err != nil {
 		return nil, err
 	}
