@@ -1,6 +1,9 @@
 package main
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"goEip712/eip712"
@@ -34,7 +37,18 @@ func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
 		return nil, err
 	}
 
-	var address = account.Address.Hex()
+	pubKey, privKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		log.Printf("Couldn't generate new signer key: %s\n", err.Error())
+		return nil, err
+	}
+
+	pubKeyString := "0x" + hex.EncodeToString(pubKey)
+	privKeyString := "0x" + hex.EncodeToString(privKey)
+
+	fmt.Println("public key: ", pubKeyString)
+	fmt.Println("private key: ", privKeyString)
+
 	key, err := wallet.PrivateKey(account)
 	if err != nil {
 		return nil, err
@@ -83,7 +97,7 @@ func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
 		},
 		Message: eip712.TypedDataMessage{
 			"requestFid": fmt.Sprintf("%d", appFid),
-			"key":        address,
+			"key":        pubKeyString,
 			"deadline":   fmt.Sprintf("%d", deadline),
 		},
 		PrimaryType: "SignedKeyRequest",
@@ -93,7 +107,7 @@ func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
 
 	token, err := warpcast.RequestToken(
 		warpcast.WarpcastBody{
-			Key:        address,
+			Key:        pubKeyString,
 			Name:       "Test",
 			RequestFid: appFid,
 			Deadline:   deadline,
