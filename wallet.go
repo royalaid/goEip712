@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/ecdsa"
 	"fmt"
+	"goEip712/eip712"
+
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/ethereum/go-ethereum/crypto"
-	"goEip712/eip712"
+	"github.com/ethereum/go-ethereum/signer/core/apitypes"
 )
 
 type defaultSigner struct {
@@ -50,14 +52,12 @@ func (d *defaultSigner) Sign(data []byte) (signature []byte, err error) {
 }
 
 func (d *defaultSigner) SignTypedData(typedData *eip712.TypedData) ([]byte, error) {
-	rawData, err := eip712.EncodeForSigning(typedData)
+	hash, _, err := apitypes.TypedDataAndHash(*typedData)
 	if err != nil {
 		return nil, err
 	}
 
-	sighash := crypto.Keccak256(rawData)
-
-	return d.sign(sighash, false)
+	return d.sign(hash, false)
 }
 
 func NewDefaultSigner(key *ecdsa.PrivateKey) Signer {

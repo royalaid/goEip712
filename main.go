@@ -1,19 +1,23 @@
 package main
 
 import (
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common/math"
-	"github.com/joho/godotenv"
-	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 	"goEip712/eip712"
 	"goEip712/warpcast"
 	"log"
-	"math/big"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/ethereum/go-ethereum/common/math"
+	"github.com/joho/godotenv"
+	hdwallet "github.com/miguelmota/go-ethereum-hdwallet"
 )
 
 func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
@@ -28,13 +32,23 @@ func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
 	if err != nil {
 		return nil, err
 	}
-	path := hdwallet.MustParseDerivationPath("m/44'/60'/0'/0/0")
-	account, err := wallet.Derive(path, false)
+	account, err := wallet.Derive(accounts.DefaultBaseDerivationPath, true)
 	if err != nil {
 		return nil, err
 	}
 
-	var address = account.Address.Hex()
+	pubKey, privKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		log.Printf("Couldn't generate new signer key: %s\n", err.Error())
+		return nil, err
+	}
+
+	pubKeyString := "0x" + hex.EncodeToString(pubKey)
+	privKeyString := "0x" + hex.EncodeToString(privKey)
+
+	fmt.Println("public key: ", pubKeyString)
+	fmt.Println("private key: ", privKeyString)
+
 	key, err := wallet.PrivateKey(account)
 	if err != nil {
 		return nil, err
@@ -46,13 +60,14 @@ func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
 	if err != nil {
 		return nil, err
 	}
-	deadline := time.Now().Unix()
+	//Add 1hr to deadline
+	deadline := time.Now().Unix() + 60*60
 
 	var eipBody = &eip712.TypedData{
 		Domain: eip712.TypedDataDomain{
 			Name:              "Farcaster SignedKeyRequestValidator",
 			Version:           "1",
-			ChainId:           (*math.HexOrDecimal256)(big.NewInt(10)),
+			ChainId:           math.NewHexOrDecimal256(10),
 			VerifyingContract: "0x00000000fc700472606ed4fa22623acf62c60553",
 		},
 		Types: eip712.Types{
@@ -82,7 +97,7 @@ func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
 		},
 		Message: eip712.TypedDataMessage{
 			"requestFid": fmt.Sprintf("%d", appFid),
-			"key":        address,
+			"key":        pubKeyString,
 			"deadline":   fmt.Sprintf("%d", deadline),
 		},
 		PrimaryType: "SignedKeyRequest",
@@ -92,7 +107,7 @@ func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
 
 	token, err := warpcast.RequestToken(
 		warpcast.WarpcastBody{
-			Key:        address,
+			Key:        pubKeyString,
 			Name:       "Test",
 			RequestFid: appFid,
 			Deadline:   deadline,
