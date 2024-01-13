@@ -6,7 +6,6 @@ import (
 	"goEip712/eip712"
 	"goEip712/warpcast"
 	"log"
-	"math/big"
 	"net/http"
 	"os"
 	"strconv"
@@ -53,7 +52,7 @@ func submitTokenPayload() (*warpcast.SignedKeyRequest, error) {
 		Domain: eip712.TypedDataDomain{
 			Name:              "Farcaster SignedKeyRequestValidator",
 			Version:           "1",
-			ChainId:           (*math.HexOrDecimal256)(big.NewInt(10)),
+			ChainId:           math.NewHexOrDecimal256(10),
 			VerifyingContract: "0x00000000fc700472606ed4fa22623acf62c60553",
 		},
 		Types: eip712.Types{
